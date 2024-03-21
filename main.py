@@ -343,7 +343,7 @@ def introduce():
     InsertTotextInfo("兴趣使然,能用就行\n", nowtime="")
     InsertTotextInfo("\n", nowtime="")
     InsertTotextInfo("无法使用请更新\n", nowtime="")
-    InsertTotextInfo("github.com/Roxy2222/-Mooc-/\n", nowtime="")
+    InsertTotextInfo("https://github.com/imRoxy2222/-Mooc-/\n", nowtime="")
 
     InsertTotextInfo("\n", nowtime="")
     InsertTotextInfo("原视频多长就需要刷取多久,只是为了挂机刷取才写的这个脚本\n", nowtime="")
@@ -360,7 +360,7 @@ if __name__ == "__main__":
     root.geometry("700x500+150+150")  # 300x500+150+150
     root.resizable(False, False)
 
-    root.title("2024/3/20")
+    root.title("2024/3/21")
 
     label_username = Label(root, text="账号:", font=("宋体", 13), fg="black")
     label_passwd = Label(root, text="密码:", font=("宋体", 13), fg="black")
