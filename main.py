@@ -161,7 +161,7 @@ def getTime(course_id: str) -> [dict, list]:
             return [study_nodeid_dct, courserNameList]
         # 最后一页刚好20条记录,去除前二十条记录
         elif end_nodeid_temp == end_nodeid:
-            return [study_nodeid_dct, courserNameList]
+            return [study_nodeid_dct[:-20], courserNameList[:-20]]
         end_nodeid = end_nodeid_temp
 
 
