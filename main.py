@@ -2,6 +2,7 @@ import random
 import re
 from time import sleep
 from tkinter import *
+import tkinter.ttk
 import tkinter
 import time
 
@@ -37,9 +38,11 @@ start_time = int(time.time())
 
 
 def study(data: dict, url: str):
-    global TIME
+    global TIME, progressBar
+
     count = 0
-    InsertTotextInfo(" 本集一共需要%d秒\n" % TIME)
+    InsertTotextInfo(" 本集大约需要%d分钟\n" % (TIME // 60 + 1))
+    InsertTotextInfo("                ****进度条持续卡住请检查网络,或重新登陆,30秒一更新****\n", nowtime="")
 
     root.after(30000, lambda: value.set(1))
     tmplable.wait_variable(value)
@@ -50,22 +53,24 @@ def study(data: dict, url: str):
         resp = ""
         for i in range(3):
             try:
-                resp = requests.post(url=url, headers=headers, data=data)
+                resp = requests.post(url=url, headers=headers, data=data, verify=False)
                 break
             except:
-                InsertTotextInfo(" 网络波动 %d\n" % (i + 1))
+                InsertTotextInfo(" 学习时间提交失败 次数%d\n" % (i + 1))
 
         if "提交学时成功" in resp.text:
             res = 100 if time / TIME > 1.0 else time / TIME * 100
-
-            InsertTotextInfo(" %s已刷%.4s%%\n" % (data['nodeId'], str(res)))
-
+            print(res)
+            progressBar["value"] = int(res)
         else:
-            InsertTotextInfo(" 提交失败\n")
+            InsertTotextInfo(" 学时提交失败\n")
+        root.update()
 
+        # online提交
         count = count + 1
         if count % 4 == 0:
-            a = InsertTotextInfo(" online提交成功\n") if postOnline() else InsertTotextInfo(" online提交失败\n")
+            postOnline()
+        #     a = InsertTotextInfo(" online提交成功\n") if postOnline() else InsertTotextInfo(" online提交失败\n")
 
         root.after(30000, lambda: value.set(1))
         tmplable.wait_variable(value)
@@ -73,12 +78,12 @@ def study(data: dict, url: str):
 
 def getStudyId(nodeld: str, url: str):
     data = {"nodeId": nodeld, "studyId": 0, "studyTime": 1, "code": ""}
-    data["nodeld"] = nodeld
+    data["nodeId"] = nodeld  # 初始化复制可能失败,重复赋值
 
     for i in range(3):
         code = getCode()
         data['code'] = code + '_'
-        resp = requests.post(url=url, headers=headers, data=data).text
+        resp = requests.post(url=url, headers=headers, data=data, verify=False).text
 
         studyid_ex = '"studyId":(\d{8}),'
         studyid = re.findall(studyid_ex, resp, re.M)
@@ -86,13 +91,11 @@ def getStudyId(nodeld: str, url: str):
         if studyid:
             break
         else:
-            InsertTotextInfo(" 网络波动 %d\n" % (i + 1))
             if i == 2:
-                InsertTotextInfo(" 程序暂停 \n", nowtime="")
+                InsertTotextInfo(" 程序暂停,请重新登陆\n", nowtime="")
                 exit(-1)
         root.after(random.randint(3, 10) * 1000, lambda: value.set(1))
         tmplable.wait_variable(value)
-        # sleep(random.randint(3,10))
 
     return studyid[0]
 
@@ -100,16 +103,16 @@ def getStudyId(nodeld: str, url: str):
 # 获取每个课程的courseId
 def getCourseId():
     url = "https://mooc.cqcst.edu.cn/user/index?kind=run"
-    resp = requests.get(url=url, headers=headers).text
+    resp = requests.get(url=url, headers=headers, verify=False).text
 
     course_id_ex = '\"/user/course\?courseId\=(\d+)">'
-    # 这里set
+    # 去重
     course_id = set(re.findall(course_id_ex, resp, re.M))
 
     return course_id
 
 
-def getTime(course_id: str):
+def getTime(course_id: str) -> [dict, list]:
     url = "https://mooc.cqcst.edu.cn/user/study_record.json"
     params = {
         "courseId": course_id,
@@ -118,8 +121,13 @@ def getTime(course_id: str):
     }
 
     study_nodeid_dct = {}
+    courserNameList = []
+    # 学习状态
     state_ex = '未学|已学'
+    # 课程id
     nodeid_ex = "nodeId\=(\d+)"
+    # 课程名
+    courserName_ex = "\"name\":\"(.*?)\""
     # 视频已观看时长
     video_time = '"viewedDuration":"(\d{2}:\d{2}:\d{2})"'
     # 视频需观看时长
@@ -131,30 +139,34 @@ def getTime(course_id: str):
     end_nodeid_temp = 0
     for i in range(1, 100, 1):
         params["page"] = i
-        InsertTotextInfo("    ========第%d页==========\n" % i, nowtime="")
-        resp_info = requests.get(url=url, headers=headers, params=params).text
-
-        for state, nodeid, time, alltime in zip(re.findall(state_ex, resp_info, re.M),  # 观看状态
-                                                re.findall(nodeid_ex, resp_info, re.M),  # 视频nodeid
-                                                re.findall(video_time, resp_info, re.M),  # 已观看时长
-                                                re.findall(video_requir_time, resp_info, re.M)):  # 需观看时长
-            InsertTotextInfo(" %s %s %s\n" % (state, nodeid, alltime))
+        InsertTotextInfo(
+            "===========================================第%d页============================================\n" % i,
+            nowtime="")
+        resp_info = requests.get(url=url, headers=headers, params=params, verify=False).text
+        for state, nodeid, time, alltime, courserName in zip(re.findall(state_ex, resp_info, re.M),  # 观看状态
+                                                             re.findall(nodeid_ex, resp_info, re.M),  # 视频nodeid
+                                                             re.findall(video_time, resp_info, re.M),  # 已观看时长
+                                                             re.findall(video_requir_time, resp_info, re.M),  # 需观看时长
+                                                             re.findall(courserName_ex, resp_info, re.M)):  # 课程名
+            # InsertTotextInfo(" %s %s    视频时长%s\n" % (state, courserName, alltime))
+            InsertTotextInfo(f" {state:<4}{courserName:<40}视频时长{alltime:<10}\n")
             if state == "未学":
-                print(nodeid, alltime, time)
                 study_nodeid_dct[nodeid] = (int(alltime[0:2]) * 3600 + int(alltime[3:5]) * 60 + int(alltime[6:8])) - \
                                            (int(time[0:2]) * 3600 + int(time[3:5]) * 60 + int(time[6:8]))
+                courserNameList.append(courserName)
             end_nodeid_temp = nodeid
 
         # 小于20条记录代表已经到头
         if len(re.findall(state_ex, resp_info, re.M)) < 20:
-            return study_nodeid_dct
+            return [study_nodeid_dct, courserNameList]
         # 最后一页刚好20条记录,去除前二十条记录
         elif end_nodeid_temp == end_nodeid:
-            return study_nodeid_dct
+            return [study_nodeid_dct, courserNameList]
         end_nodeid = end_nodeid_temp
 
+
 def postStudy():
-    global TIME, start_time
+    global TIME, start_time, progressBar
     url = "https://mooc.cqcst.edu.cn/user/node/study"
 
     data = {
@@ -166,20 +178,12 @@ def postStudy():
     watched_count = 0
 
     watched_nodeid = []
+    courserCount = 0
     # 获取搜索课程
     course_list = getCourseId()
     for course_id in course_list:
-        for nodeid, vtime in getTime(course_id).items():
-            # 隔一个查看是否刷取成功
-            # if (watched_count+1) % 2 == 0:
-            #     tmp = getTime(course_id)
-            #     # 刷取失败
-            #     if tmp.get(str(int(nodeid)-1)):
-            #         if tmp[str(int(nodeid)-1)] > 30:
-            #             InsertTotextInfo("    刷取失败,尝试重试\n", nowtime="")
-            #             input()
-            #             postStudy()
-
+        studyTime_and_courserName = getTime(course_id)
+        for nodeid, vtime in studyTime_and_courserName[0].items():
             if nodeid not in watched_nodeid:
                 watched_nodeid.append(nodeid)
             else:
@@ -196,7 +200,10 @@ def postStudy():
                 InsertTotextInfo("    刷取时长超过2h,重新登录\n", nowtime="")
                 postStudy()
 
-            InsertTotextInfo(" 正在学习%s\n" % nodeid)
+            InsertTotextInfo(" \n ", nowtime="")
+            # InsertTotextInfo(" 正在学习%s\n" % nodeid)
+            InsertTotextInfo(" 正在学习--->%s\n" % studyTime_and_courserName[1][courserCount])
+            progressBar["value"] = 0
 
             # 需要观看的时长小于10s就可以跳过
             if TIME < 10:
@@ -211,19 +218,15 @@ def postStudy():
             root.after(n * 1000, lambda: value.set(1))
             tmplable.wait_variable(value)
 
-            InsertTotextInfo(" studyID=%s\n" % data["studyId"])
-
             if len(data["studyId"]) == 8:
                 study(data, url)
-                # pass
             else:
                 InsertTotextInfo(" %d刷取失败" % nodeid)
             watched_count += 1
+            courserCount += 1
 
 
 def postOnline(count=1):
-    # InsertTotextInfo(" 跳过\n")
-    # return True
     url = "https://mooc.cqcst.edu.cn/user/online"
 
     data = {
@@ -231,7 +234,7 @@ def postOnline(count=1):
         'status': 'true'
     }
 
-    resp = requests.post(url=url, data=data, headers=headers).text
+    resp = requests.post(url=url, data=data, headers=headers, verify=False).text
     if 'ok' not in resp and 'true' not in resp:
         return False if count == 4 else postOnline(count + 1)
     return True
@@ -242,12 +245,12 @@ def getCode():
     f = random.random()
     url = url + str(f)
 
-    code_img = requests.get(url=url, headers=headers).content
+    code_img = requests.get(url=url, headers=headers, verify=False).content
 
     ocr = DdddOcr(old=True, show_ad=False)
 
     res = ocr.classification(code_img)
-    InsertTotextInfo(" 验证码是:%s\n" % res)
+    InsertTotextInfo(" 本集验证码是:%s\n" % res)
     return res
 
 
@@ -257,18 +260,17 @@ def GetLoginKey():
     }
     for i in range(3):
         try:
-            keytmp = requests.get(url="https://mooc.cqcst.edu.cn/service/code", params=parser, headers=headers).content
-            # keytmp = requests.get(url='https://mooc.cqcst.edu.cn/service/code?r={time()}', headers=headers).content
+            InsertTotextInfo(" 请求登录验证码\n")
+            keytmp = requests.get(url="https://mooc.cqcst.edu.cn/service/code", params=parser, headers=headers,
+                                  verify=False).content
             ocr = DdddOcr(old=True, show_ad=False)
             key = ocr.classification(keytmp)
-
             return key
         except:
-            InsertTotextInfo(" 网络波动 %d\n" % (i + 1))
+            InsertTotextInfo(" 验证码识别/获取错误 %d\n" % (i + 1))
 
 
-
-def InsertTotextInfo(info: str, nowtime="1") -> None:
+def InsertTotextInfo(info: str, nowtime="1", sleep_time=200) -> None:
     global textCol
     if nowtime == "1":
         nowtime = time.strftime("%H:%M:%S")
@@ -278,7 +280,7 @@ def InsertTotextInfo(info: str, nowtime="1") -> None:
     text_info.update()
     text_info.see(END)
 
-    root.after(200, lambda: value.set(1))
+    root.after(sleep_time, lambda: value.set(1))
     tmplable.wait_variable(value)
 
 
@@ -286,18 +288,16 @@ def randomCookies():
     str_list = list("K7MvIHt8HPC1bqyeNJK23lfsxaDuhY")
     random.shuffle(str_list)
     for i in range(len(str_list)):
-        if str_list[i] >= '0' and str_list[i] <= '6':
+        if '0' <= str_list[i] <= '6':
             str_list[i] = chr(ord(str_list[i]) + random.randint(0, 4))
-        elif str_list[i] >= 'a' and str_list[i] <= 'q':
+        elif 'a' <= str_list[i] <= 'q':
             str_list[i] = chr(ord(str_list[i]) + random.randint(0, 9))
-        elif str_list[i] >= 'A' and str_list[i] <= 'Q':
+        elif 'A' <= str_list[i] <= 'Q':
             str_list[i] = chr(ord(str_list[i]) + random.randint(0, 9))
-    # print("".join(str_list))
     return "".join(str_list)
 
 
 def login():
-    global textCol
     loginUrl = "https://mooc.cqcst.edu.cn/user/login"
     username = entry_username.get().strip()
     password = entry_passwd.get().strip()
@@ -308,12 +308,17 @@ def login():
         "code": "",
         "redirect": ""
     }
+
+    if data["username"] == "" or data["password"] == "":
+        InsertTotextInfo(" 账号或密码为空\n")
+        return
+
     for i in range(2):
         data["code"] = GetLoginKey()
 
-        InsertTotextInfo(" 第%d次尝试,验证码为%s\n" % (i + 1, data["code"]))
+        InsertTotextInfo(" 第%d次登录尝试,验证码为%s\n" % (i + 1, data["code"]))
 
-        resp = requests.post(url=loginUrl, data=data, headers=headers).text
+        resp = requests.post(url=loginUrl, data=data, headers=headers, verify=False).text
         if "登录成功" in resp:
             InsertTotextInfo(" 登录成功\n")
             postStudy()
@@ -323,58 +328,73 @@ def login():
         root.after(random.randint(5, 10 + 1) * 1000, lambda: value.set(1))
         tmplable.wait_variable(value)
 
-    InsertTotextInfo(" 账号/密码有误\n")
+        sleep(3)
+
+    InsertTotextInfo(" 请检查你的账号 or 密码\n")
     root.after(5000, lambda: value.set(1))
     tmplable.wait_variable(value)
 
 
 def closeWindow():
-    # print("关闭")
     root.destroy()
+
+
+def introduce():
+    InsertTotextInfo("兴趣使然,能用就行\n", nowtime="")
+    InsertTotextInfo("\n", nowtime="")
+    InsertTotextInfo("无法使用请更新\n", nowtime="")
+    InsertTotextInfo("github.com/Roxy2222/-Mooc-/\n", nowtime="")
+
+    InsertTotextInfo("\n", nowtime="")
+    InsertTotextInfo("原视频多长就需要刷取多久,只是为了挂机刷取才写的这个脚本\n", nowtime="")
+    InsertTotextInfo("倍速/极速刷取大概率被检测(太久之前测试的了,不清楚了)\n", nowtime="")
+
+    InsertTotextInfo("\n", nowtime="")
+    InsertTotextInfo("\n", nowtime="")
 
 
 if __name__ == "__main__":
     headers["user-agent"] = headers_list[random.randint(0, len(headers_list) - 1)]
     headers["cookie"] = "token=sid." + randomCookies()
 
-    root.geometry("300x500+150+150")
+    root.geometry("700x500+150+150")  # 300x500+150+150
     root.resizable(False, False)
 
-    root.title("2023/12/2")
+    root.title("2024/3/20")
 
     label_username = Label(root, text="账号:", font=("宋体", 13), fg="black")
     label_passwd = Label(root, text="密码:", font=("宋体", 13), fg="black")
-    label_info = Label(root, text="author:frank2222", font=("consolas", 8), fg="red")
-    label_username.place(x=20, y=15)
-    label_passwd.place(x=20, y=45)
-    label_info.place(x=80, y=470)
+    label_info = Label(root, text="author:frank2222", font=("consolas", 12), fg="red")
+    label_username.place(x=20, y=25)  # 20 15
+    label_passwd.place(x=300, y=25)  # 20 45
+    label_info.place(x=20, y=470)  # 280 470
 
     entry_username = Entry(root, font=("微软雅黑", 13), fg="black")
     entry_passwd = Entry(root, font=("微软雅黑", 13), fg="black", show="*")
-    entry_username.place(x=65, y=15)
-    entry_passwd.place(x=65, y=45)
+    entry_username.place(x=75, y=25)
+    entry_passwd.place(x=350, y=25)  # 65 45
 
     button_enterOK = Button(root, text="确定", font=("微软雅黑", 15), fg="black", command=login)
-    button_enterOK.place(x=110, y=80)
+    button_enterOK.place(x=600, y=15)  # 110 80
 
-    text_info = Text(root, width=34, height=25, undo=True, autoseparators=False)
+    text_info = Text(root, width=92, height=28, undo=True, autoseparators=False)  # 34 25
     scrollbar = tkinter.Scrollbar(root, orient="vertical", command=text_info.yview)
     text_info.config(yscrollcommand=scrollbar.set)
 
-    scrollbar.place(x=265, y=123, height=353)
+    scrollbar.place(x=671, y=90, height=370)  # 265 123 353
     text_info.bind("<Key>", lambda e: "break")
-    text_info.place(x=23, y=135)
+    text_info.place(x=23, y=90)  # 23 135
+
+    progressBar = tkinter.ttk.Progressbar(root, length=200)
+    progressBar.place(x=470, y=470)
+    progressBar["maximum"] = 100
+    progressBar["value"] = 0
 
     root.protocol("WM_DELETE_WINDOW", closeWindow)
 
     value = tkinter.IntVar()
     tmplable = Label(root)
-    InsertTotextInfo("兴趣使然,能用就行\n", nowtime="")
-    InsertTotextInfo("\n", nowtime="")
 
-
-
-    InsertTotextInfo("更新可以去github网址\n", nowtime="")
-    InsertTotextInfo("github.com/Roxy2222/-Mooc-/\n", nowtime="")
+    introduce()
 
     root.mainloop()
