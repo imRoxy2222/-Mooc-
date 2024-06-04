@@ -3,6 +3,7 @@ import re
 from time import sleep
 from tkinter import *
 import tkinter.ttk
+from tkinter.ttk import Combobox
 import tkinter
 import time
 
@@ -188,8 +189,6 @@ def postStudy():
 		for nodeid, vtime in studyTime_and_courserName[0].items():
 			if nodeid not in watched_nodeid:
 				watched_nodeid.append(nodeid)
-			else:
-				continue
 			# TIME = int(vtime[0:2]) * 3600 + int(vtime[3:5]) * 60 + int(vtime[6:])
 			TIME = vtime
 			
@@ -201,9 +200,9 @@ def postStudy():
 				InsertTotextInfo("    刷取时长超过2h,重新登录\n", nowtime="")
 				InsertTotextInfo("    刷取时长超过2h,重新登录\n", nowtime="")
 				postStudy()
+				return
 			
 			InsertTotextInfo(" \n ", nowtime="")
-			# InsertTotextInfo(" 正在学习%s\n" % nodeid)
 			InsertTotextInfo(" 正在学习--->%s\n" % studyTime_and_courserName[1][courserCount])
 			progressBar["value"] = 0
 			
@@ -301,9 +300,9 @@ def randomCookies():
 
 def login():
 	global HOST
-	tmpUrl = entry_url.get().strip()
+	tmpUrl = combobox_url.get()
 	if tmpUrl != "":
-		HOST = tmpUrl
+		HOST = tmpUrl.split("-")[-1]
 	loginUrl = "https://" + HOST + "/user/login"
 	username = entry_username.get().strip()
 	password = entry_passwd.get().strip()
@@ -315,7 +314,7 @@ def login():
 		"redirect": ""
 	}
 	
-	InsertTotextInfo(" 当前刷取" + HOST + "\n")
+	InsertTotextInfo(" 当前刷取地址: " + HOST + "\n")
 	if data["username"] == "" or data["password"] == "":
 		InsertTotextInfo(" 账号或密码为空\n")
 		return
@@ -358,12 +357,6 @@ def introduce():
 	InsertTotextInfo("倍速/极速刷取大概率被检测(太久之前测试的了,不清楚了)\n", nowtime="")
 	
 	InsertTotextInfo("\n", nowtime="")
-	
-	InsertTotextInfo("已知能刷取网站(类似网站因该都可以):\n", nowtime="")
-	InsertTotextInfo("zxshixun.cqcst.edu.cn\n", nowtime="")
-	InsertTotextInfo("mooc.cqcst.edu.cn\n", nowtime="")
-	
-	InsertTotextInfo("\n", nowtime="")
 	InsertTotextInfo("\n", nowtime="")
 
 
@@ -372,11 +365,11 @@ def create_toplevel():
 	top.geometry("330x500")
 	top.resizable(False, False)
 	top.title('介绍')
-	# msg = tkinter.Label(top, text='这是一个顶级窗口')
 	msg = Label(top, text="目前可刷取\nmooc.cqcst.edu.cn与\nzxshixun.cqcst.edu.cn\n这两个网站,其他城科要相似的看课\n页面大概率也可以,请自己输\n入主机名地址,"
 						  "密码就是\n这两个网站的登录账号密码\n\n这个是完整地址:\nhttps://zxshixun.cqcst.edu.cn/user\n这个是主机地址:\nzxshixun.cqcst.edu.cn\n"
 						  "请输入主机地址,否则不保证可用", font=("微软雅黑", 15), fg="black")
 	msg.grid()
+	Label(top, text="只能输入主机地址\n否则无效", font=("微软雅黑", 15), fg="red").grid()
 
 
 if __name__ == "__main__":
@@ -386,7 +379,7 @@ if __name__ == "__main__":
 	root.geometry("700x550+150+150")  # 300x500+150+150
 	root.resizable(False, False)
 	
-	root.title("2024/4/15")
+	root.title("update time:2024/6/4 version:0.4.3")
 	
 	label_username = Label(root, text="账号:", font=("宋体", 13), fg="black")
 	label_passwd = Label(root, text="密码:", font=("宋体", 13), fg="black")
@@ -403,12 +396,17 @@ if __name__ == "__main__":
 	button_enterOK = Button(root, text="确定", font=("微软雅黑", 15), fg="black", command=login)
 	button_enterOK.place(x=600, y=15)
 	
+	# 输入url
 	label_url = Label(root, text="要刷取的网站:", font=("宋体", 13), fg="black")
-	entry_url = Entry(root, font=("微软雅黑", 13), fg="black")
 	button_url = Button(root, text="不知道怎么用点我", font=("微软雅黑", 9), fg="red", command=create_toplevel)
 	label_url.place(x=20, y=85)
-	entry_url.place(x=150, y=85)
-	button_url.place(x=370, y=85)
+	button_url.place(x=570, y=80)
+	url = ["英华学堂,选修课选我-mooc.cqcst.edu.cn", "数字化实习实训平台-zxshixun.cqcst.edu.cn",
+		   "社会公益平台-gyxy.cqcst.edu.cn",
+		   "没有请手动输入,请查看\"不知道怎么用点我\""]
+	combobox_url = Combobox(root, values=url, width=50)
+	combobox_url.set(url[0])
+	combobox_url.place(x=150, y=85)
 	
 	text_info = Text(root, width=92, height=28, undo=True, autoseparators=False)
 	scrollbar = tkinter.Scrollbar(root, orient="vertical", command=text_info.yview)
