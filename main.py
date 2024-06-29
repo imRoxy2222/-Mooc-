@@ -10,9 +10,6 @@ from wcwidth import wcswidth
 import requests
 from ddddocr import DdddOcr
 
-root = Tk()
-textCol = 1.0
-
 headers = {
 	'accept': 'application/json, text/javascript, */*; q=0.01',
 	'accept-encoding': 'gzip, deflate, br',
@@ -42,6 +39,10 @@ HOST = "zxshixun.cqcst.edu.cn"
 ocr = DdddOcr(old=True, show_ad=False, beta=True)
 # 最大尝试次数
 MAX_ATTEMPT_COUNT = 3
+# 可视化界面
+root = Tk()
+# 行数
+textCol = 1.0
 
 
 def study(data: dict, url: str):
@@ -370,10 +371,6 @@ def login():
 	tempLabel.wait_variable(value)
 
 
-def closeWindow() -> None:
-	root.destroy()
-
-
 def introduce() -> None:
 	InsertTotextInfo("兴趣使然,能用就行\n", nowTime="")
 	InsertTotextInfo("\n", nowTime="")
@@ -407,6 +404,7 @@ if __name__ == "__main__":
 	
 	root.title("update time:2024/6/28 version:0.4.5")
 	
+	# 账号密码作者介绍label
 	usernameLabel = Label(root, text="账号:", font=("宋体", 13), fg="black")
 	passwordLabel = Label(root, text="密码:", font=("宋体", 13), fg="black")
 	infoLabel = Label(root, text="author: frank2222@foxmail.com", font=("consolas", 12), fg="red")
@@ -414,13 +412,21 @@ if __name__ == "__main__":
 	passwordLabel.place(x=300, y=25)
 	infoLabel.place(x=20, y=510)
 	
+	# 账号密码框
 	usernameEntry = Entry(root, font=("微软雅黑", 13), fg="black")
 	passwordEntry = Entry(root, font=("微软雅黑", 13), fg="black", show="*")
 	usernameEntry.place(x=75, y=25)
 	passwordEntry.place(x=350, y=25)
 	
+	# 确定按钮
 	button_enterOK = Button(root, text="确定", font=("微软雅黑", 15), fg="black", command=login)
-	button_enterOK.place(x=600, y=15)
+	button_enterOK.place(x=630, y=15)
+	
+	# 显示隐藏密码按钮
+	showPwd = Button(text="show")
+	showPwd.place(x=550, y=23)
+	showPwd.bind("<ButtonPress-1>", lambda e: passwordEntry.config(show=""))
+	showPwd.bind("<ButtonRelease-1>", lambda e: passwordEntry.config(show="*"))
 	
 	# 输入url
 	urlLabel = Label(root, text="要刷取的网站:", font=("宋体", 13), fg="black")
@@ -450,7 +456,7 @@ if __name__ == "__main__":
 	progressBar["maximum"] = 100
 	progressBar["value"] = 0
 	
-	root.protocol("WM_DELETE_WINDOW", closeWindow)
+	root.protocol("WM_DELETE_WINDOW", root.destroy)
 	
 	value = tkinter.IntVar()
 	tempLabel = Label(root)
