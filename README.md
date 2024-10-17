@@ -1,9 +1,8 @@
 # -Mooc-
-~~城科Mooc刷课脚本~~
+英华学堂刷课(类似英华学堂的大概率也可以)
 
-城科Mooc类似页面刷课
-
-现在你可以刷取城科中类似于Mooc的~~几乎所有~~网站了
+不会下载的提供网盘:
+链接：https://pan.baidu.com/s/1mETySpQJevP_o4lKN0s1og?pwd=wq1i 
 
 你可以直接下载main.py来阅读源码或者自行修改
 当然你也可以使用pyinstaller等方式来打包成可执行文件
