@@ -66,6 +66,7 @@ def study(data: dict, url: str):
 			except:
 				InsertTotextInfo(" 学习时间提交失败 次数%d\n" % (i + 1))
 		
+		print(resp.text)
 		if "提交学时成功" in resp.text:
 			res = 100 if time / TIME > 1.0 else time / TIME * 100
 			progressBar["value"] = int(res)
@@ -202,7 +203,7 @@ def postStudy():
 			TIME = vtime
 			
 			InsertTotextInfo(" \n ", nowTime="")
-			InsertTotextInfo(" 正在学习--->%s\n" % studyTime_and_courserName[1][courserCount])
+			InsertTotextInfo("正在学习--->%s\n" % studyTime_and_courserName[1][courserCount])
 			progressBar["value"] = 0
 			
 			# 需要观看的时长小于10s就可以跳过
@@ -241,6 +242,7 @@ def postOnline(count=1):
 
 
 def getCode():
+	global ocr
 	url = "https://" + HOST + "/service/code/aa?r="
 	f = random.random()
 	url = url + str(f)
@@ -323,6 +325,7 @@ def login():
 	
 	button_enterOK.config(state=DISABLED)
 	urlCombox.config(state=DISABLED)
+	showPwd.config(state=DISABLED)
 	
 	urlFlag = True
 	
@@ -356,6 +359,7 @@ def login():
 	
 	button_enterOK.config(state=ACTIVE)
 	urlCombox.config(state=ACTIVE)
+	showPwd.config(state=ACTIVE)
 	
 	InsertTotextInfo("\n", nowTime="")
 	if urlFlag:
@@ -366,7 +370,6 @@ def login():
 		InsertTotextInfo(" 你刷取的网站因该是登录时需要选择学校的\n", nowTime="")
 		InsertTotextInfo(" 你可以尝试登录进去后再复制url\n", nowTime="")
 		InsertTotextInfo(" 当你尝试过依旧不行时,请联系我:frank2222@foxmail.com\n", nowTime="")
-	
 	root.after(5000, lambda: value.set(1))
 	tempLabel.wait_variable(value)
 
@@ -402,7 +405,7 @@ if __name__ == "__main__":
 	root.geometry("700x550+150+150")  # 300x500+150+150
 	root.resizable(False, False)
 	
-	root.title("update time:2024/6/28 version:0.4.5")
+	root.title("update time:2024/10/29 version:0.4.5.1")
 	
 	# 账号密码作者介绍label
 	usernameLabel = Label(root, text="账号:", font=("宋体", 13), fg="black")
