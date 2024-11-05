@@ -103,7 +103,7 @@ def getStudyId(nodeld: str, url: str):
 			if i == 2:
 				InsertTotextInfo(" 程序暂停,请重新登陆\n", nowTime="")
 				exit(-1)
-		root.after(random.randint(3, 10) * 1000, lambda: value.set(1))
+		root.after(random.randint(3, 6) * 1000, lambda: value.set(1))
 		tempLabel.wait_variable(value)
 	
 	return studyId[0]
@@ -214,7 +214,7 @@ def postStudy():
 			data["nodeId"] = nodeid
 			data["studyId"] = getStudyId(nodeid, url)
 			
-			n = random.randint(3, 10)
+			n = random.randint(3, 6)
 			data["studyTime"] = n
 			root.after(n * 1000, lambda: value.set(1))
 			tempLabel.wait_variable(value)
@@ -248,8 +248,6 @@ def getCode():
 	url = url + str(f)
 	
 	code_img = requests.get(url=url, headers=headers, verify=False).content
-	
-	ocr = DdddOcr(old=True, show_ad=False)
 	
 	res = ocr.classification(code_img)
 	InsertTotextInfo(" 本集验证码是:%s\n" % res)
@@ -335,7 +333,6 @@ def login():
 		InsertTotextInfo(" 第%d次登录尝试,验证码为%s\n" % (i + 1, data["code"]))
 		
 		resp = requests.post(url=loginUrl, data=data, headers=headers, verify=False).text
-		print(resp)
 		if "登录成功" in resp:
 			InsertTotextInfo(" 登录成功\n")
 			button_enterOK.config(state=ACTIVE)
@@ -405,7 +402,7 @@ if __name__ == "__main__":
 	root.geometry("700x550+150+150")  # 300x500+150+150
 	root.resizable(False, False)
 	
-	root.title("update time:2024/10/29 version:0.4.5.1")
+	root.title("update time:2024/11/5 version:0.4.5.1fix")
 	
 	# 账号密码作者介绍label
 	usernameLabel = Label(root, text="账号:", font=("宋体", 13), fg="black")
